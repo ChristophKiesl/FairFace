@@ -15,7 +15,23 @@ import argparse
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DLIB_MODELS_DIR = os.path.join(SCRIPT_DIR, 'dlib_models')
 
-print("Skript Dir:", SCRIPT_DIR)
+def write_input_csv(SCRIPT_DIR):
+    input_dir = os.path.join(SCRIPT_DIR, "Bilder_input")
+    
+    if not os.path.exists(input_dir):
+        raise FileNotFoundError(f"Ordner nicht gefunden: {input_dir}")
+    
+    jpg_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".jpg")]
+    
+    relative_paths = [os.path.join("Bilder_input", f) for f in jpg_files]
+    
+    df = pd.DataFrame(relative_paths, columns=["img_path"])
+    
+    output_csv = os.path.join(SCRIPT_DIR, "input.csv")
+    df.to_csv(output_csv, index=False)
+    
+    print(f"✅ input.csv erstellt mit {len(jpg_files)} Einträgen: {output_csv}")
+
 def rect_to_bb(rect):
 	# take a bounding predicted by dlib and convert it
 	# to the format (x, y, w, h) as we would normally do
@@ -212,13 +228,13 @@ def resolve_path(p):
 
 
 if __name__ == "__main__":
+    write_input_csv(SCRIPT_DIR)
     #Please create a csv with one column 'img_path', contains the full paths of all images to be analyzed.
     #Also please change working directory to this file.
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', dest='input_csv', action='store',
                         help='csv file of image path where col name for image path is "img_path')
     dlib.DLIB_USE_CUDA = True
-    print("Aktuelles Arbeitsverzeichnis:", os.getcwd())
     print("using CUDA?: %s" % dlib.DLIB_USE_CUDA)
     args = parser.parse_args()
     SAVE_DETECTED_AT = os.path.join(SCRIPT_DIR, 'detected_faces')
@@ -230,4 +246,4 @@ if __name__ == "__main__":
     detect_face(imgs, SAVE_DETECTED_AT)
     print("detected faces are saved at ", SAVE_DETECTED_AT)
     #Please change test_outputs.csv to actual name of output csv. 
-    predidct_age_gender_race(os.path.join(SCRIPT_DIR, 'test_outputs.csv'), SAVE_DETECTED_AT)
+    predidct_age_gender_race(os.path.join(SCRIPT_DIR, 'Race.csv'), SAVE_DETECTED_AT)
