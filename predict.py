@@ -12,6 +12,10 @@ import dlib
 import os
 import argparse
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DLIB_MODELS_DIR = os.path.join(SCRIPT_DIR, 'dlib_models')
+
+print("Skript Dir:", SCRIPT_DIR)
 def rect_to_bb(rect):
 	# take a bounding predicted by dlib and convert it
 	# to the format (x, y, w, h) as we would normally do
@@ -24,13 +28,14 @@ def rect_to_bb(rect):
 	return (x, y, w, h)
 
 def detect_face(image_paths,  SAVE_DETECTED_AT, default_max_size=800,size = 300, padding = 0.25):
-    cnn_face_detector = dlib.cnn_face_detection_model_v1('dlib_models/mmod_human_face_detector.dat')
-    sp = dlib.shape_predictor('dlib_models/shape_predictor_5_face_landmarks.dat')
+    cnn_face_detector = dlib.cnn_face_detection_model_v1(os.path.join(DLIB_MODELS_DIR, 'mmod_human_face_detector.dat'))
+    sp = dlib.shape_predictor(os.path.join(DLIB_MODELS_DIR, 'shape_predictor_5_face_landmarks.dat'))
     base = 2000  # largest width and height
     for index, image_path in enumerate(image_paths):
         if index % 1000 == 0:
             print('---%d/%d---' %(index, len(image_paths)))
-        img = dlib.load_rgb_image(image_path)
+        
+        img = dlib.load_rgb_image(os.path.join(SCRIPT_DIR,image_path))
 
         old_height, old_width, _ = img.shape
 
@@ -52,7 +57,7 @@ def detect_face(image_paths,  SAVE_DETECTED_AT, default_max_size=800,size = 300,
             faces.append(sp(img, rect))
         images = dlib.get_face_chips(img, faces, size=size, padding = padding)
         for idx, image in enumerate(images):
-            img_name = image_path.split("/")[-1]
+            img_name = os.path.basename(image_path)
             path_sp = img_name.split(".")
             face_name = os.path.join(SAVE_DETECTED_AT,  path_sp[0] + "_" + "face" + str(idx) + "." + path_sp[-1])
             dlib.save_image(image, face_name)
@@ -63,13 +68,13 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
 
     model_fair_7 = torchvision.models.resnet34(pretrained=True)
     model_fair_7.fc = nn.Linear(model_fair_7.fc.in_features, 18)
-    model_fair_7.load_state_dict(torch.load('fair_face_models/fairface_alldata_20191111.pt'))
+    model_fair_7.load_state_dict(torch.load(os.path.join(DLIB_MODELS_DIR, 'res34_fair_align_multi_7_20190809.pt')))   
     model_fair_7 = model_fair_7.to(device)
     model_fair_7.eval()
 
     model_fair_4 = torchvision.models.resnet34(pretrained=True)
     model_fair_4.fc = nn.Linear(model_fair_4.fc.in_features, 18)
-    model_fair_4.load_state_dict(torch.load('fair_face_models/fairface_alldata_4race_20191111.pt'))
+    model_fair_4.load_state_dict(torch.load(os.path.join(DLIB_MODELS_DIR, 'res34_fair_align_multi_4_20190809.pt')))
     model_fair_4 = model_fair_4.to(device)
     model_fair_4.eval()
 
@@ -90,7 +95,8 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
     age_preds_fair = []
     race_scores_fair_4 = []
     race_preds_fair_4 = []
-
+    
+    print("Image Names: ",img_names)
     for index, img_name in enumerate(img_names):
         if index % 1000 == 0:
             print("Predicting... {}/{}".format(index, len(img_names)))
@@ -198,6 +204,11 @@ def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+def resolve_path(p):
+    # Wandelt forward slashes (/) in Windows-kompatible Pfade um
+    p = p.replace("/", os.sep)
+    
+    return p
 
 
 if __name__ == "__main__":
@@ -207,12 +218,16 @@ if __name__ == "__main__":
     parser.add_argument('--csv', dest='input_csv', action='store',
                         help='csv file of image path where col name for image path is "img_path')
     dlib.DLIB_USE_CUDA = True
+    print("Aktuelles Arbeitsverzeichnis:", os.getcwd())
     print("using CUDA?: %s" % dlib.DLIB_USE_CUDA)
     args = parser.parse_args()
-    SAVE_DETECTED_AT = "detected_faces"
+    SAVE_DETECTED_AT = os.path.join(SCRIPT_DIR, 'detected_faces')
     ensure_dir(SAVE_DETECTED_AT)
-    imgs = pd.read_csv(args.input_csv)['img_path']
+    csv_path = os.path.abspath(args.input_csv)
+    csv_dir = os.path.dirname(csv_path)
+    imgs = pd.read_csv(csv_path)['img_path'].astype(str).apply(resolve_path)
+    print(imgs)
     detect_face(imgs, SAVE_DETECTED_AT)
     print("detected faces are saved at ", SAVE_DETECTED_AT)
     #Please change test_outputs.csv to actual name of output csv. 
-    predidct_age_gender_race("test_outputs.csv", SAVE_DETECTED_AT)
+    predidct_age_gender_race(os.path.join(SCRIPT_DIR, 'test_outputs.csv'), SAVE_DETECTED_AT)
