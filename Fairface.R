@@ -38,7 +38,30 @@ Fairfaceresults = add_id_from_path(read_and_bind_csv(path_output),"face_name_ali
   select(c("ID","race4"))
 
 # join data
-FinalData = Fairfaceresults%>%
-  left_join(image_label,by = c("ID"))%>%
-  select(-c("face_name_align"))%>%
+FinalData = image_label%>%
+  left_join(Fairfaceresults,by = c("ID"))%>%
   write.csv(paste0(path,"/fairfacefinal.csv"))
+
+#dateien kopieren
+fehlendeBilder = read.csv("D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/no_fairface_classification.csv")%>%
+  rename(ID = player_id_sofascore)
+
+source_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/HiWi_Kiesl/Bilder_all"
+target_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_input"
+
+# Stelle sicher, dass das Zielverzeichnis existiert
+if(!dir.exists(target_dir)){
+  dir.create(target_dir, recursive = TRUE)
+}
+
+# Hole alle Dateien im Source-Ordner (mit jeglicher Endung)
+all_files <- list.files(source_dir, full.names = TRUE)
+
+# Für jede ID prüfen, ob ein Dateiname (ohne Endung) passt und dann kopieren
+for(id in fehlendeBilder$ID){
+  matches <- all_files[grepl(paste0("^", id, "\\."), basename(all_files))]
+  
+  if(length(matches) > 0){
+    file.copy(from = matches, to = target_dir, overwrite = TRUE)
+  }
+}
