@@ -37,6 +37,8 @@ image_label = read.csv(paste0(path,"/manual.classification.csv"))%>%
 Fairfaceresults = add_id_from_path(read_and_bind_csv(path_output),"face_name_align","ID") %>%
   select(c("ID","race4"))
 
+Fairfaceresults = rbind(Fairfaceresults,Race28)
+
 # join data
 FinalData = image_label%>%
   left_join(Fairfaceresults,by = c("ID"))%>%
@@ -65,3 +67,43 @@ for(id in fehlendeBilder$ID){
     file.copy(from = matches, to = target_dir, overwrite = TRUE)
   }
 }
+
+library(magick)
+
+# Pfad zum Ordner anpassen
+input_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_input"
+output_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_all_jpg"   # neuer Ordner für JPGs
+
+# Ordner für Ausgabe anlegen (falls nicht vorhanden)
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir)
+}
+
+# Liste aller Bilddateien (beliebige Formate)
+files <- list.files(input_dir, pattern = "\\.(png|jpeg|jpg|tiff|bmp|gif|webp)$",
+                    ignore.case = TRUE, full.names = TRUE)
+
+for (file in files) {
+  img <- image_read(file)
+  
+  # Neuen Dateinamen erstellen
+  base <- tools::file_path_sans_ext(basename(file))
+  out_file <- file.path(output_dir, paste0(base, ".jpg"))
+  
+  # Als JPG speichern
+  image_write(img, out_file, format = "jpg")
+}
+
+cat("Fertig! Alle Bilder wurden gespeichert.\n")
+
+# letze Datei formatieren
+extract_id <- function(x) {
+  # x: character vector (z. B. Spalte im Dataframe)
+  sub(".*\\/([0-9]+)_face.*", "\\1", x)
+}
+
+Race28 = read.csv("D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/output_csv/Race28.csv")
+Race28$face_name_align = as.factor(extract_id(Race28$face_name_align))
+Race28 = Race28%>% mutate(ID = face_name_align)%>%
+  select(c("ID","race4"))
+write.csv(Race28, "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/output_csv/Race28.csv")
