@@ -71,8 +71,8 @@ for(id in fehlendeBilder$ID){
 library(magick)
 
 # Pfad zum Ordner anpassen
-input_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_input"
-output_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_all_jpg"   # neuer Ordner für JPGs
+input_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_2425"
+output_dir <- "D:/Uni/Ulm/Master/Hiwi-Forschung-und-Lehre/FairFace/Bilder_input"   # neuer Ordner für JPGs
 
 # Ordner für Ausgabe anlegen (falls nicht vorhanden)
 if (!dir.exists(output_dir)) {
